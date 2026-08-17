@@ -1,0 +1,42 @@
+# Optional Forge 1.21.1 install smoke (network + Java). Not run on PRs.
+# Trigger manually or on a weekly schedule.
+name: forge-smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Mondays 06:15 UTC
+    - cron: "15 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  forge-1211-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src-tauri
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Run Forge 1.21.1 smoke
+        env:
+          AUREUM_FORGE_SMOKE: "1"
+        run: cargo test forge_1211_install_smoke -- --ignored --nocapture

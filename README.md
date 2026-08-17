@@ -5,6 +5,8 @@ A local-first desktop instance manager for Minecraft: Java Edition.
 
 > NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
 
+**Status: `0.1.0-dev` — internal / contributor builds.** Prefer continuing development over a public release until the checklist in [RELEASE.md](./RELEASE.md) is met (signed updater stub, auth client IDs, honest release notes).
+
 Aureum never bundles Minecraft jars or assets. It downloads official version
 manifests and loader metadata on behalf of a signed-in owner. No ads, no
 Bedrock, no cracked accounts, no private mod repo.
@@ -28,14 +30,26 @@ Tauri’s Windows notes: <https://v2.tauri.app/start/prerequisites/>
 
 ## Downloads
 
-Binary builds are published on [GitHub Releases](https://github.com/Azturax/MC-launcher/releases):
+**No public stable channel yet.** Build from source (below). When ready, binary builds will use [GitHub Releases](https://github.com/Azturax/MC-launcher/releases) via `.github/workflows/release.yml` (see [RELEASE.md](./RELEASE.md)).
 
 | Channel | Where to find it | Notes |
 | --- | --- | --- |
-| **Alpha** | Releases marked **Pre-release**, tags like `v0.x.x-alpha.N` | Early builds; expect bugs and breaking changes |
-| **Stable** | Full (non–pre-release) Releases | Prefer these for day-to-day use |
+| **Dev** | This repo (`0.1.0-dev`) | `npm run tauri dev` / local `tauri build` |
+| **Alpha** (later) | Pre-release tags `v0.x.x-alpha.N` | Unsigned OK; expect SmartScreen/Gatekeeper warnings |
+| **Stable** (later) | Full Releases | Prefer after updater + signing criteria |
 
-Until the first assets are attached, build from source (below). Alpha installers will appear on Pre-release entries when published — do not treat alpha as production-ready.
+Until the first assets are attached, build from source. Do not treat early alphas as production-ready.
+
+**Unsigned alphas are OK for early testing** once criteria in RELEASE.md are met. Code signing and Apple notarization are optional later — see commented secret placeholders in the release workflow (`TAURI_SIGNING_*`, `APPLE_*`).
+
+### Publish a multi-OS release (later)
+
+```bash
+git tag v0.1.0-alpha.1
+git push origin v0.1.0-alpha.1
+```
+
+Tags containing `alpha`, `beta`, or `-pre` are marked as GitHub pre-releases automatically. Use a clean semver tag (e.g. `v1.0.0`) only when RELEASE.md v1.0 criteria are green.
 
 ## Run
 
@@ -93,6 +107,7 @@ and set `bundle.createUpdaterArtifacts` to `true`. Never commit the private key.
 | `auth` | `aureum-auth` | Microsoft/Xbox/Minecraft tokens + keychain |
 | `catalog` | `aureum-catalog` | Modrinth adapter (official API + ETag cache) |
 | `resolve` | `aureum-resolve` | Transitive deps, pins, lockfile |
+| `mrpack` | (with resolve) | Modrinth `.mrpack` import / export |
 
 ## Mods (Modrinth)
 
@@ -100,6 +115,41 @@ The Mods page searches [Modrinth](https://docs.modrinth.com/api/) only. Install
 targets the selected instance, walks required dependencies, writes
 `aureum.lock.json`, and verifies SHA-1/SHA-512. CurseForge is not scraped.
 Attribution stays on the Modrinth chip.
+
+### Instance workspace
+
+Select an instance on Home to open the right-hand workspace tabs: **Mods**
+(pin / enable / update / remove / load order), **Packs**, **Screenshots**,
+**Logs** (live tail + `logs/` / `crash-reports/` browser), and **Settings**
+(JVM / memory / version upgrade). Load order is persisted for Aureum UI; Fabric
+and Quilt still own class loading.
+
+### `.mrpack` import / export
+
+Use **Import .mrpack** on Home, or the instance **Packs** tab. From the Mods
+catalog, choose **Modpacks** and **Install as instance** to download the
+Modrinth `.mrpack` and run the same import pipeline. Export writes a
+Modrinth-format pack from installed mods (CDN links when known; otherwise jars
+are embedded under `overrides/`). Spec:
+https://docs.modrinth.com/modpacks/format/
+
+Resource packs, shaders, and datapacks install into `resourcepacks/`,
+`shaderpacks/`, and `datapacks/` when **Add Content** is enabled.
+
+### Forge smoke
+
+```bash
+# PowerShell
+$env:AUREUM_FORGE_SMOKE="1"
+cd src-tauri
+cargo test forge_1211_install_smoke -- --ignored --nocapture
+```
+
+Downloads the 1.21.1 client jar + Forge installer (no assets, no game launch).
+Ignored by default so routine `cargo test` stays offline-friendly.
+
+GitHub Actions: `.github/workflows/forge-smoke.yml` runs the same check on
+`workflow_dispatch` and a weekly schedule (not on every PR).
 
 ## License / policy
 
